@@ -12,7 +12,7 @@ module Ctrf
 
     def start(_notification)
       @tests = {}
-      @run_start = Time.now.to_i
+      @run_start = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
     end
 
     def example_started(notification)
@@ -29,7 +29,8 @@ module Ctrf
         # Otherwise, this could is the location of the `it` - even if that's in a helper file unrelated to the test
         filePath: notification.example.id,
         extra: {
-          hash: notification.example.hash
+          hash: notification.example.hash,
+          filePathLocation: notification.example.location
         }
       }
     end
@@ -52,9 +53,9 @@ module Ctrf
     def example_finished(notification)
       test = @tests[notification.example.hash]
 
-      test[:duration] = notification.example.execution_result.run_time * 1000
-      test[:start] = notification.example.execution_result.started_at.to_i
-      test[:stop] = notification.example.execution_result.finished_at.to_i
+      test[:duration] = notification.example.execution_result.run_time.to_i * 1000
+      test[:start] = notification.example.execution_result.started_at.to_i * 1000
+      test[:stop] = notification.example.execution_result.finished_at.to_i * 1000
 
       test[:status] = notification.example.execution_result.status.to_s
       test[:rawStatus] = notification.example.execution_result.status
@@ -90,7 +91,7 @@ module Ctrf
             skipped: @tests.values.select { |test| test[:status] == 'skipped' }.count,
             other: @tests.values.select { |test| test[:status] == 'other' }.count,
             start: @run_start,
-            stop: Time.now.to_i
+            stop: Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
           },
           tests: @tests.values
         }
